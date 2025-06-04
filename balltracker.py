@@ -75,7 +75,7 @@ def Image_Generator(ball_pos):
 
     return ballframe_A, ballframe_B
 
-def Tracker(frames, threshold):
+def Ballfinder(frames, threshold):
 
     """
     Detects a ball in a given set of input frames via scipy's center_of_mass function
@@ -95,3 +95,33 @@ def Tracker(frames, threshold):
             tracked_positions.append(None)
 
     return tracked_positions
+
+def Tracker(cam_A, cam_B, timesteps):
+
+    """
+    Returns [t, x, y, z] coordinates of a ball moving through images from cams A and B.
+    :param cam_A: List or np.ndarray containing frames (np.ndarrays) of camera A.
+    :param cam_B: List or np.ndarray containing frames (np.ndarrays) of camera B.
+    :param timesteps: List or np.ndarray containing the timesteps at which the camera frames were recorded.
+    :return: pos_4D: np.ndarray containing the 4D position of the ball in the form [t, x, y, z]
+    """
+
+    # getting tracked positions
+    pos_A = Ballfinder(cam_A, 128) # y and z coordinates
+    pos_B = Ballfinder(cam_B, 128) # x and z coordinates
+
+    # initialising x, y and z arrays to store coordinates
+    x = np.zeros_like(timesteps)
+    y = np.zeros_like(timesteps)
+    z = np.zeros_like(timesteps)
+
+    for i in range(len(timesteps)):
+        x[i] = pos_B[i][0]
+        y[i] = pos_A[i][0]
+        z[i] = pos_A[i][1] # z is the same for both cameras, can choose either one here
+
+    pos_4D = np.array([timesteps, x, y, z])
+
+    return pos_4D
+
+
