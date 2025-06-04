@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import random
 from scipy.ndimage import center_of_mass
 
 
@@ -17,25 +16,82 @@ def Trajectory(start_pos, start_vel, t):
     - Tuple (x, y, z): Position at time t
     """
 
-    if len(start_pos) != 3 or len(start_vel) != 3:
-        raise ValueError("start_pos and velocity must be 3-element vectors.")
+    # x and y are very straightforward
+    x = 10 * np.min([start_pos[0] + start_vel[0] * t, 50])
+    y = 10 * np.min([start_pos[1] + start_vel[1] * t, 65])
 
-    g = 9.81
+    # modelling z as a dampened harmonic oscillator
+    def max_height(z,vz):
+        """Calculates maximum height the ball can reach."""
+        g = 9.81
+        t = np.linspace(0,10,100)
+        return np.max(z + vz * t - 0.5 * g * t**2)
 
-    x = start_pos[0] + start_vel[0] * t
-    y = start_pos[1] + start_vel[1] * t
-    z = start_pos[2] + start_vel[2] * t - 0.5 * g * t ** 2  # gravity affects z
+    z_max = max_height(start_pos[2], start_vel[2])
+    dampening_coeff = 0.5
+    angular_freq = 8
+    z = 10 * z_max * np.exp(-dampening_coeff * t) * np.abs(np.sin(angular_freq * t))
 
-    return (x, y, z)
+    return np.round([x, y, z],2)
 
-def Image_Generator(N, ball_pos, noise = True):
+def insert_ball(frame, position, radius, color):
+
+    """
+    Inserts a circle of given radius into input frame at position
+    :param frame: np.ndarray of with 2 dimensions of arbitrary size
+    :param position: Tuple or list of 2 elements (x, y), coordinates at which to center the circle
+    :param radius: Int, radius of circle
+    :param color: Int, color of circle
+    :return: frame: np.ndarray, same as input array but now with added ball
+    """
+
+    yy, xx = np.ogrid[:frame.shape[0], :frame.shape[1]]
+    ball = (xx - position[0])**2 + (yy - position[1])**2 <= radius**2
+    frame[ball] = color
+    return frame
+
+def Image_Generator(ball_pos):
+
+    """
+    Generates images as np.ndarrays for two cameras (two different povs of the same space) and puts a ball in them
+    :param ball_pos:
+    :return:
+    """
+
+    dims_A = (350,650)
+    dims_B = (350,500)
 
     # creating image frames of cam A (at the goal) and cam B (on the side)
-    cam_A = np.zeros((N,N))
-    cam_B = np.zeros((N,N))
+    cam_A = np.zeros(dims_A)
+    cam_B = np.zeros(dims_B)
 
-    # put the ball into the images
+    # get projected positions for each camera frame
     pos_A = [ball_pos[1], ball_pos[2]] # cam A sees y- and z-projections
     pos_B = [ball_pos[0], ball_pos[2]] # cam B sees x- and z-projections
 
-    # CONTINUE WORK HERE
+    # put the ball into the frames
+    ballframe_A = insert_ball(cam_A,pos_A,8,255)
+    ballframe_B = insert_ball(cam_B, pos_B, 8, 255)
+
+    return ballframe_A, ballframe_B
+
+def Tracker(frames, threshold):
+
+    """
+    Detects a ball in a given set of input frames via scipy's center_of_mass function
+    :param frames: List or numpy.ndarray containing the frames to be analysed
+    :param threshold: Int, detection threshold
+    :return: List containing detected ball-position for each frame
+    """
+
+    tracked_positions = []
+
+    for frame in frames:
+        binary = frame > threshold
+        if np.any(binary):
+            cy, cx = center_of_mass(binary)  # returns (row, col) = (y, x)
+            tracked_positions.append((int(cx), int(cy)))
+        else:
+            tracked_positions.append(None)
+
+    return tracked_positions
