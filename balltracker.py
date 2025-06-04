@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import numba
 import random
+from scipy.ndimage import center_of_mass
 
 
 def Trajectory(start_pos, start_vel, t):
@@ -28,25 +28,11 @@ def Trajectory(start_pos, start_vel, t):
 
     return (x, y, z)
 
-# generate random noise for input image x
-@numba.njit
-def RandomNoise(x):
-    x = x.reshape(-1) # flat view
-    for i in range(len(x)):
-        x[i] += random.random()
-
 def Image_Generator(N, ball_pos, noise = True):
 
     # creating image frames of cam A (at the goal) and cam B (on the side)
     cam_A = np.zeros((N,N))
     cam_B = np.zeros((N,N))
-
-    # filling images with random noise
-    if noise == True:
-        cam_A = RandomNoise(cam_A)
-        cam_B = RandomNoise(cam_A)
-    else:
-        pass
 
     # put the ball into the images
     pos_A = [ball_pos[1], ball_pos[2]] # cam A sees y- and z-projections
