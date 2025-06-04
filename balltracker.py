@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from scipy.ndimage import center_of_mass
 
 
@@ -8,8 +9,8 @@ def Trajectory(start_pos, start_vel, t):
     Calculates the 3D position of a ball at time t, including gravity acting in -z direction.
     Each coordinate is multiplied by 10 for better discretisation, showing distance in dm istead of m.
     Parameters:
-    - start_pos: Tuple or list of 3 elements (x0, y0, z0)
-    - velocity: Tuple or list of 3 elements (vx, vy, vz)
+    - start_pos: Tuple or list of 3 elements (x0, y0, z0), should be in m
+    - velocity: Tuple or list of 3 elements (vx, vy, vz), should be in m/s
     - t: Time in seconds (float)
 
     Returns:
@@ -125,3 +126,53 @@ def Tracker(cam_A, cam_B, timesteps):
     return pos_4D
 
 
+# Example Usage:
+
+# initial values and timesteps at which pictures are taken
+pos = [0,10,0]
+vel = [10, 8, 15]
+times = [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+
+cam_A = []
+cam_B = []
+
+for t in times:
+    ball_pos = Trajectory(pos, vel, t)
+    frame_A, frame_B = Image_Generator(ball_pos)
+    cam_A.append(frame_A)
+    cam_B.append(frame_B)
+
+tracked_positions = Tracker(cam_A, cam_B, times)
+
+print(tracked_positions)
+
+# Verification
+fig, axes = plt.subplots(nrows=7, ncols=2, figsize=(7, 14))
+
+for i in range(7):
+
+    t = tracked_positions[0][i]
+    x = tracked_positions[1][i]
+    y = tracked_positions[2][i]
+    z = tracked_positions[3][i]
+
+    center_A = (y,z)
+    center_B = (x,z)
+
+    circle_A = patches.Circle(center_A, 15, edgecolor='red', facecolor='none', linewidth=2)
+    circle_B = patches.Circle(center_B, 15, edgecolor='red', facecolor='none', linewidth=2)
+
+    axes[i, 0].imshow(cam_A[i], cmap='gray')
+    axes[i, 0].add_patch(circle_A)
+    axes[i, 0].set_ylim([0, 150])
+    axes[i, 0].set_xlim([0, 650])
+    axes[i, 0].set_title(f'Cam A frame at t = {t}s')
+
+    axes[i, 1].imshow(cam_B[i], cmap='gray')
+    axes[i, 1].add_patch(circle_B)
+    axes[i, 1].set_ylim([0, 150])
+    axes[i, 1].set_xlim([0, 500])
+    axes[i, 1].set_title(f'Cam B frame at t = {t}s')
+
+plt.tight_layout()
+plt.show()
