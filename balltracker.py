@@ -6,7 +6,7 @@ from scipy.ndimage import center_of_mass
 def Trajectory(start_pos, start_vel, t):
     """
     Calculates the 3D position of a ball at time t, including gravity acting in -z direction.
-
+    Each coordinate is multiplied by 10 for better discretisation, showing distance in dm istead of m.
     Parameters:
     - start_pos: Tuple or list of 3 elements (x0, y0, z0)
     - velocity: Tuple or list of 3 elements (vx, vy, vz)
